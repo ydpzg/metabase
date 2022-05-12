@@ -1,6 +1,5 @@
 import React from "react";
 import {
-  fireEvent,
   renderWithProviders,
   screen,
   waitForElementToBeRemoved,
@@ -82,8 +81,6 @@ describe("DatabaseEditApp", () => {
       it("is invisible", async () => {
         await setup({ cachingEnabled: true });
 
-        fireEvent.click(screen.getByText("Show advanced options"));
-
         expect(
           screen.queryByText("Default result cache duration"),
         ).not.toBeInTheDocument();
@@ -97,8 +94,6 @@ describe("DatabaseEditApp", () => {
 
       it("is visible", async () => {
         await setup({ cachingEnabled: true });
-
-        fireEvent.click(screen.getByText("Show advanced options"));
 
         expect(
           screen.queryByText("Default result cache duration"),
