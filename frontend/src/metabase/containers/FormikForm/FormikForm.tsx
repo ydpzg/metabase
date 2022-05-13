@@ -75,7 +75,7 @@ function Form({
   ...props
 }: FormContainerProps) {
   const [error, setError] = useState<string | null>(null);
-  const [values, setValues] = useState(initialValuesProp);
+  const [values, setValues] = useState({});
 
   const {
     inlineFields,
@@ -119,11 +119,18 @@ function Form({
       }
     });
 
+    if (overwriteOnInitialValuesChange) {
+      return merge(
+        values,
+        merge(formObject.initial(values), filteredInitialValues),
+      );
+    }
+
     return merge(
       merge(formObject.initial(values), filteredInitialValues),
       values,
     );
-  }, [values, initialValuesProp, formObject]);
+  }, [values, initialValuesProp, formObject, overwriteOnInitialValuesChange]);
 
   const fieldNames = useMemo(
     () => formObject.fieldNames({ ...initialValues, ...values }),
@@ -192,7 +199,6 @@ function Form({
     <Formik
       validateOnBlur
       validateOnMount
-      enableReinitialize={overwriteOnInitialValuesChange}
       initialValues={initialValues}
       validate={handleValidation}
       onSubmit={handleSubmit}
