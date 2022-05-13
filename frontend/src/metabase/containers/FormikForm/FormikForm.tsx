@@ -113,7 +113,7 @@ function Form({
     const fieldNames = formObject.fieldNames(values);
 
     const filteredInitialValues: FieldValues = {};
-    Object.keys(initialValuesProp).forEach(fieldName => {
+    Object.keys(initialValuesProp || {}).forEach(fieldName => {
       if (fieldNames.includes(fieldName)) {
         filteredInitialValues[fieldName] = initialValuesProp[fieldName];
       }
