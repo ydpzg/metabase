@@ -27,7 +27,7 @@ const EForm = ({
     {...props}
     form={form}
     initialValues={
-      typeof entityObject.getPlainObject === "function"
+      typeof entityObject?.getPlainObject === "function"
         ? entityObject.getPlainObject()
         : entityObject
     }
