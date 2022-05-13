@@ -1,4 +1,5 @@
 import React from "react";
+import PropTypes from "prop-types";
 import cx from "classnames";
 import { t } from "ttag";
 
@@ -12,6 +13,7 @@ export interface CustomFormFooterProps {
   cancelTitle?: string;
   fullWidth?: boolean;
   isModal?: boolean;
+  isContextModal?: boolean;
   footerExtraButtons?: React.ReactElement[];
   onCancel?: () => void;
 }
@@ -23,11 +25,12 @@ function CustomFormFooter({
   footerExtraButtons,
   fullWidth,
   isModal,
+  isContextModal,
 }: CustomFormFooterProps) {
   return (
     <div
       className={cx("flex align-center", {
-        "flex-reverse": isModal,
+        "flex-reverse": isModal || isContextModal,
       })}
     >
       <CustomFormSubmit fullWidth={fullWidth}>{submitTitle}</CustomFormSubmit>
@@ -42,5 +45,18 @@ function CustomFormFooter({
     </div>
   );
 }
+interface LegacyContextProps {
+  isModal?: boolean;
+}
 
-export default CustomFormFooter;
+// Modal components uses legacy React context to pass `isModal` prop
+const CustomFormFooterLegacyContext = (
+  props: CustomFormFooterProps,
+  { isModal }: LegacyContextProps,
+) => <CustomFormFooter {...props} isContextModal={isModal} />;
+
+CustomFormFooterLegacyContext.contextTypes = {
+  isModal: PropTypes.bool,
+};
+
+export default CustomFormFooterLegacyContext;
