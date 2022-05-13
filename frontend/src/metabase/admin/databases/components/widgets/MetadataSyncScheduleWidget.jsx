@@ -9,7 +9,7 @@ export default function MetadataSyncScheduleWidget({ field }) {
   return (
     <SchedulePicker
       schedule={
-        !_.isString(field.value)
+        _.isObject(field.value)
           ? field.value
           : {
               schedule_day: "mon",

@@ -29,7 +29,7 @@ export default function CacheFieldValuesScheduleWidget({
           <div className="flex align-center">
             <SchedulePicker
               schedule={
-                !_.isString(field.value)
+                _.isObject(field.value)
                   ? field.value
                   : {
                       schedule_day: "mon",
