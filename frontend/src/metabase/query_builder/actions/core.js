@@ -33,7 +33,7 @@ import Questions from "metabase/entities/questions";
 import Snippets from "metabase/entities/snippets";
 import { fetchAlertsForQuestion } from "metabase/alert/alert";
 
-import { getValueAndFieldIdPopulatedParametersFromCard } from "metabase/parameters/utils/cards";
+import { getUiParametersFromCard } from "metabase/parameters/utils/cards";
 import { hasMatchingParameters } from "metabase/parameters/utils/dashboards";
 import { getParameterValuesByIdFromQueryParams } from "metabase/parameters/utils/parameter-values";
 
@@ -384,10 +384,7 @@ export const initializeQB = (location, params) => {
 
     card = question && question.card();
     const metadata = getMetadata(getState());
-    const parameters = getValueAndFieldIdPopulatedParametersFromCard(
-      card,
-      metadata,
-    );
+    const parameters = getUiParametersFromCard(card, metadata);
     const parameterValues = getParameterValuesByIdFromQueryParams(
       parameters,
       queryParams,
