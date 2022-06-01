@@ -82,7 +82,7 @@ export function getParametersFromCard(
   return getTemplateTagParameters(tags);
 }
 
-export function getUiParametersFromCard(
+export function getCardUiParameters(
   card: Card,
   metadata: Metadata,
   parameterValues: { [key: string]: any },
