@@ -885,6 +885,21 @@
      (serdes.utils/identity-hash (Collection parent-id))
      "ROOT")))
 
+(defn- serialize-collection
+  "The base serdes-serialize-one removes timestamps and primary keys, but the :location uses database IDs.
+  This drops :location and adds a portable :parent_id with the parent's entity ID."
+  [coll]
+  (let [parent (some-> coll
+                       (hydrate :parent_id)
+                       :parent_id
+                       Collection)
+        parent-id (when parent
+                    (or (:entity_id parent) (serdes.utils/identity-hash parent)))]
+    (cond-> coll
+      true      (dissoc :location)
+      parent-id (assoc :parent_id parent-id))))
+
+
 (u/strict-extend (class Collection)
   models/IModel
   (merge models/IModelDefaults
@@ -903,8 +918,20 @@
           :perms-objects-set perms-objects-set})
 
   serdes.utils/IdentityHashable
-  {:identity-hash-fields (constantly [:name :namespace parent-identity-hash])})
+  {:identity-hash-fields (constantly [:name :namespace parent-identity-hash])}
 
+  serdes.utils/ISerializable
+  (merge serdes.utils/ISerializableDefaults
+         {:serdes-query
+          (fn [_ user-or-nil]
+            (let [unowned (db/select-reducible Collection :personal_owner_id nil :archived false)]
+              (if user-or-nil
+                (eduction cat [unowned
+                               (db/select-reducible Collection
+                                                    :personal_owner_id user-or-nil :archived false)])
+                unowned)))
+
+          :serdes-serialize-one (serdes.utils/serialize-one-plus serialize-collection)}))
 
 ;;; +----------------------------------------------------------------------------------------------------------------+
 ;;; |                                           Perms Checking Helper Fns                                            |

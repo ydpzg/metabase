@@ -21,7 +21,8 @@
   (:require [potemkin.types :as p.types]
             [toucan.db :as db]
             [toucan.hydrate :refer [hydrate]]
-            [toucan.models :as models]))
+            [toucan.models :as models])
+  (:import [java.io File]))
 
 ;;; +----------------------------------------------------------------------------------------------------------------+
 ;;; |                                              Identity Hashes                                                   |
@@ -101,35 +102,48 @@
 
 (p.types/defprotocol+ ISerializable
   ;;; Serialization side
-  (serdes-combined-file?
-    [this]
-    "Given a model, returns true if it should be dumped as a single file (eg. Settings) or false to dump as one file per
-    entity (the majority).
-    Default implementation returns false, to dump as one file per entity.")
+  ;(serdes-combined-file?
+  ;  [this]
+  ;  "Given a model, returns true if it should be dumped as a single file (eg. Settings) or false to dump as one file per
+  ;  entity (the majority).
+  ;  Default implementation returns false, to dump as one file per entity.")
 
   (serdes-serialize-all
-    [this]
-    "ONLY CALLED FOR COMBINED FILE OUTPUT.
-    Default implementation throws an error; this needs to be custom implemented.")
+    [this user-or-nil]
+    "Serializes all relevant instances of this model.
+    The return value is a reducible sequence of [file-path entity-map] pairs, possibly empty.
+    There can be a single file for all the entities (eg. settings) or one file per entity.
+
+    The default implementation assumes there will be many files:
+    - It calls (serdes-query this user-or-nil) to get the (lazy, reducible) set of entities to serialize.
+    - For each entity, it calls `(serdes-serialize-one e)` and expects a {file-path {...}} map.
+    - These maps are merged to form the returned map.
+
+    To serialize as a single file, override this to do something else. (Then `serdes-query` and `serdes-serialize-one`
+    are never called and can be stubs.)")
 
   (serdes-query
     [this user-or-nil]
     "Performs the select query, possibly filtered, for all the entities of this type that should be serialized.
-    Returns the result of the db/select.
-    Defaults to a naive db/select for the entire model, ignoring the optional user argument.
-    ONLY CALLED FOR MULTI-FILE OUTPUT.")
+    Returns the result of the db/select-reducible.
+    Defaults to a naive db/select-redcible for the entire model, ignoring the optional user argument.
+
+    Only called by `serdes-serialize-all`, either the default implementation or (optionally) by a custom one.
+    This exists to be an easy override point, when the default `serdes-serialize-all` is good but you need to filter
+    the returned set, eg. by dropping archived entities.")
 
   (serdes-serialize-one
     [this]
     "Serializes a single entity into a YAML-friendly map, with its filename.
-    Actually returns {file-name {entity map...}}.
+    Returns a [file-name {entity map...}] pair.
 
     Default implementation:
-    - Uses $ENTITY_ID.yaml or $IDENTITY_HASH.yaml as the filename.
-    - Returns the entity as a vanilla map with :id and any :foo_at fields removed.
-    - Adds the field :type \"Collection\" or similar.
+    - Uses `\"$ENTITY_ID.yaml\"` or `\"$IDENTITY_HASH.yaml\"` as the filename.
+    - Returns the entity as a vanilla map with `:id` and any `:foo_at` fields removed.
+    - Adds the field `:type \"Collection\"` (etc.) to specify the model.
 
-    That suffices for a few simple entities, but most entities will need to override this.")
+    That suffices for a few simple entities, but most entities will need to override this.
+    They should follow the pattern of dropping timestamps and numeric database IDs, and including the `:type`.")
 
   ;;; Deserialization side.
   (serdes-upsert
@@ -144,14 +158,20 @@
     the appdb.
     Defaults to a straight db/insert! of this new map."))
 
-(defn- default-query [model _]
-  (db/select model))
+(defn- default-serialize-all [model user-or-nil]
+  (eduction (map serdes-serialize-one) (serdes-query model user-or-nil)))
 
-(defn- default-serialize-one [entity]
-  (let [pk (models/primary-key entity)]
-    (-> (into {} entity)
-        (dissoc pk)
-        (remove-timestamps))))
+(defn- default-query [model _]
+  (db/select-reducible model))
+
+(defn serialize-one-plus [f]
+  (fn [entity]
+    [(format "%s%s%s.yaml" (name entity) File/separatorChar (or (:entity_id entity) (identity-hash entity)))
+     (-> (into {} entity)
+         (dissoc (models/primary-key entity))
+         (remove-timestamps)
+         (assoc :serdes-type (name entity))
+         f)]))
 
 (defn- default-upsert [old-entity new-map]
   (db/update! old-entity (get old-entity (models/primary-key old-entity)) new-map))
@@ -160,28 +180,24 @@
   (db/insert! model new-map))
 
 (def ISerializableDefaults
-  {:serdes-combined-file? (constantly false)
-   :serdes-serialize-all  (fn [this]
-                            (throw (ex-info (format "Unimplemented serdes-serialize-all for %s" (name this)) {})))
+  {:serdes-serialize-all  default-serialize-all
    :serdes-query          default-query
-   :serdes-serialize-one  default-serialize-one
+   :serdes-serialize-one  (serialize-one-plus identity)
    :serdes-upsert         default-upsert
    :serdes-insert         default-insert})
 
 ;;; Serialization stack:
 ;;; (dump target-path user-or-nil)
 ;;; - This gets a list of types, eg. "Database", "Field", "Collection", etc.
-;;; - It calls serdes-combined-file?, which defaults to false but a few types get combined (eg. Settings)
-;;;   - Multi-file: It calls (serdes-query EntityType user-or-nil) to get the result set, then calls
-;;;     (serdes-serialize-one entity) with each one.
-;;;   - Single-file: It calls (serdes-serialize-all EntityType).
-;;; - In either case, the return value is a map of {file-path clojure-map}.
-;;;   - The above are expected to do some filtering of fields that shouldn't be exported. By default that's anything
-;;;     that ends with _at.
-;;;   - References to other entities eg. collection_id should be replaced with entity_id or identity-hash of the target,
-;;;     rather than its database key.
+;;; - For each type, it calls (serdes-serialize-all Model user-or-nil)
+;;;   - For a single combined file, that logic is all in serdes-serialize-all
+;;;   - For one file per entity, the default serdes-serialize-all does:
+;;;     - serdes-query to get the relevant set of entities
+;;;     - serdes-serialize-one to massage each value for export (eg. removing timestamps and database IDs)
+;;;     - combines all the [file-path {...}] results into a lazy reducible of [path contents] pairs.
 ;;; - The dump system takes care of actually writing the files and directories, and the conversion to YAML.
 ;;;   - Returning as Clojure data makes testing easier.
+;;;   - This is done lazily, from the appdb to the file system, to keep memory overhead down.
 
 ;;; Deserialization stack:
 ;;; (load root-path)
@@ -198,3 +214,6 @@
 ;;;     - If a match is found, do an upsert with (serdes-upsert old new).
 ;;;     - If no match is found, do a (serdes-insert new).
 ;;;     - These default to straight Toucan function pass-through but can be overridden if extra work is needed.
+;;; - Single combined files have `:serdes-combined true, :type \"SomeModel\"` in them; in that case
+;;;   (serdes-deserialize-combined model map) is called instead.
+;;;   The default implementation of that throws; it needs custom handling to match the serialization.
