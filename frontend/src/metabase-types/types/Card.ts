@@ -22,6 +22,9 @@ export type SavedCard<Query = DatasetQuery> = UnsavedCard<Query> & {
   dataset?: boolean;
   can_write: boolean;
   public_uuid: string;
+
+  // Only for native queries
+  is_write?: boolean;
 };
 
 export type Card<Query = DatasetQuery> = SavedCard<Query> | UnsavedCard<Query>;
