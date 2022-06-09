@@ -13,9 +13,6 @@ function editScheduleParamsForUserControlledScheduling(database) {
   const { details, schedules } = database;
 
   if (details["let-user-control-scheduling"] && !schedules?.metadata_sync) {
-    if (!database.schedules) {
-      database.schedules = {};
-    }
     database.schedules.metadata_sync = {
       schedule_type: "daily",
     };
