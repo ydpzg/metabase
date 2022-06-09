@@ -40,6 +40,7 @@ type ServerErrorResponse = {
         errors?: Record<string, string>;
       }
     | string;
+  errors?: Record<string, string>;
   message?: string;
 };
 
@@ -51,8 +52,13 @@ function maybeBlurActiveElement() {
 }
 
 function getGeneralErrorMessage(error: ServerErrorResponse) {
-  if (typeof error.data === "object" && error.data.message) {
-    return error.data.message;
+  if (typeof error.data === "object") {
+    if (error.data.message) {
+      return error.data.message;
+    }
+    if (error.data?.errors?._error) {
+      return error.data.errors._error;
+    }
   }
   if (error.message) {
     return error.message;
@@ -150,8 +156,9 @@ function Form({
         );
 
         if (hasUnknownFields) {
-          setError(DEFAULT_ERROR_MESSAGE);
-          return DEFAULT_ERROR_MESSAGE;
+          const generalMessage =
+            getGeneralErrorMessage(error) || DEFAULT_ERROR_MESSAGE;
+          setError(generalMessage);
         }
 
         formikHelpers.setErrors(error.data.errors);
