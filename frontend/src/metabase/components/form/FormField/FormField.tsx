@@ -65,7 +65,6 @@ function FormField({
   ...props
 }: FormFieldProps) {
   const title = props.title ?? formField?.title;
-  const type = props.type ?? formField.type;
   const description = props.description ?? formField?.description;
   const descriptionPosition = getDescriptionPositionPropValue(
     props.descriptionPosition,
@@ -81,9 +80,6 @@ function FormField({
   const hidden = getHiddenPropValue(props.hidden, formField);
   const horizontal = getHorizontalPropValue(props.horizontal, formField);
 
-  const isToggle = type === "boolean";
-  const standAloneLabel = isToggle && align === "right" && !description;
-
   if (hidden) {
     return null;
   }
@@ -93,8 +89,8 @@ function FormField({
     ...props,
   };
 
-  const shouldShowError = visited && !active;
-  const error = !shouldShowError ? undefined : errorProp;
+  const shouldHideError = !visited || active;
+  const error = shouldHideError ? undefined : errorProp;
 
   return (
     <FormFieldView
@@ -109,7 +105,6 @@ function FormField({
       infoLabel={infoLabel}
       infoLabelTooltip={infoLabelTooltip}
       align={align}
-      standAloneLabel={standAloneLabel}
       horizontal={horizontal}
     >
       {children}

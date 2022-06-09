@@ -10,7 +10,7 @@ import _ from "underscore";
 import { t } from "ttag";
 
 import CustomForm from "metabase/components/form/CustomForm";
-import StandardForm from "metabase/components/form/LegacyStandardForm";
+import StandardForm from "metabase/components/form/StandardForm";
 
 export {
   CustomFormField as FormField,

@@ -2,7 +2,7 @@ import React, { useCallback, useMemo } from "react";
 import { getIn } from "icepick";
 import _ from "underscore";
 
-import FormField from "metabase/components/form/FormField";
+import FormField from "metabase/components/form/FormikFormField";
 import FormWidget from "metabase/components/form/FormWidget";
 
 import { useOnMount } from "metabase/hooks/use-on-mount";

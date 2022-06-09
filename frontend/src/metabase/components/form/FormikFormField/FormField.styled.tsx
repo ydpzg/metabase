@@ -1,8 +1,7 @@
 import styled from "@emotion/styled";
 import { css } from "@emotion/react";
-import Icon from "metabase/components/Icon";
-
 import { color } from "metabase/lib/colors";
+import Icon from "metabase/components/Icon";
 
 export const FieldRow = styled.div`
   display: flex;
@@ -10,12 +9,20 @@ export const FieldRow = styled.div`
   margin-bottom: 0.5em;
 `;
 
-export const Label = styled.label<{ horizontal?: boolean }>`
+export const Label = styled.label<{
+  horizontal?: boolean;
+  standAlone?: boolean;
+}>`
   margin-bottom: 0;
   ${props =>
     props.horizontal &&
     css`
       margin-right: auto;
+    `}
+  ${props =>
+    props.standAlone &&
+    css`
+      margin-top: 0.8em;
     `}
 `;
 
@@ -26,7 +33,7 @@ export const InfoIcon = styled(Icon)`
   color: ${color("bg-dark")};
 
   &:hover {
-    color: ${color("brand")};
+    color: ${() => color("brand")};
   }
 `;
 
@@ -41,6 +48,7 @@ export const FieldContainer = styled.div<{
   horizontal?: boolean;
   align?: "left" | "right";
 }>`
+  width: 100%;
   margin-right: ${props => (props.horizontal ? "1rem" : "")};
   margin-left: ${props => (props.align === "left" ? "0.5rem" : "")};
 `;

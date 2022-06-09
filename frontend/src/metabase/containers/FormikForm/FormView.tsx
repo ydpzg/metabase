@@ -4,7 +4,7 @@ import _ from "underscore";
 import CustomForm, {
   CustomFormProps,
 } from "metabase/components/form/FormikCustomForm";
-import StandardForm from "metabase/components/form/StandardForm";
+import StandardForm from "metabase/components/form/FormikStandardForm";
 
 function FormView(
   props: CustomFormProps & {

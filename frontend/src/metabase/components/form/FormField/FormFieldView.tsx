@@ -19,7 +19,6 @@ interface FormFieldViewProps extends BaseFieldDefinition {
   fieldId: string;
   error?: string;
   className?: string;
-  standAloneLabel?: boolean;
   children: React.ReactNode;
 }
 
@@ -36,7 +35,6 @@ function FormFieldView({
   infoLabelTooltip,
   align,
   horizontal,
-  standAloneLabel,
   children,
 }: FormFieldViewProps) {
   const rootClassNames = cx("Form-field", className, {
@@ -55,7 +53,6 @@ function FormFieldView({
                 id={`${name}-label`}
                 htmlFor={name}
                 horizontal={horizontal}
-                standAlone={standAloneLabel}
               >
                 {title}
                 {error && <span className="text-error">: {error}</span>}
