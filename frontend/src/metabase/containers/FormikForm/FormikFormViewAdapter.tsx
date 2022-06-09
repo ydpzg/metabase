@@ -43,7 +43,6 @@ function getMaybeNestedValue<Value = string>(
 }
 
 interface FormikFormViewAdapterOwnProps {
-  formInitialValues: FieldValues;
   onValuesChange: (values: FieldValues) => void;
 }
 
@@ -53,7 +52,6 @@ type FormikFormViewAdapterProps = FormikProps<FieldValues> &
 
 function FormikFormViewAdapter({
   formObject,
-  formInitialValues,
   onValuesChange,
 
   errors,
@@ -80,12 +78,6 @@ function FormikFormViewAdapter({
       onValuesChange(values);
     }
   }, [previousValues, values, onValuesChange]);
-
-  useEffect(() => {
-    if (!_.isEqual(formInitialValues, initialValues)) {
-      resetForm({ values: formInitialValues, errors, touched });
-    }
-  }, [formInitialValues, initialValues, errors, touched, resetForm]);
 
   const fields = formObject.fields(values);
   const formFieldsByName = _.indexBy(fields, "name");

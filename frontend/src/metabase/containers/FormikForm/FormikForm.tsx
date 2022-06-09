@@ -119,18 +119,8 @@ function Form({
       }
     });
 
-    if (overwriteOnInitialValuesChange) {
-      return merge(
-        values,
-        merge(formObject.initial(values), filteredInitialValues),
-      );
-    }
-
-    return merge(
-      merge(formObject.initial(values), filteredInitialValues),
-      values,
-    );
-  }, [values, initialValuesProp, formObject, overwriteOnInitialValuesChange]);
+    return merge(formObject.initial(values), filteredInitialValues);
+  }, [values, initialValuesProp, formObject]);
 
   const fieldNames = useMemo(
     () => formObject.fieldNames({ ...initialValues, ...values }),
@@ -200,6 +190,7 @@ function Form({
       validateOnBlur
       validateOnMount
       initialValues={initialValues}
+      enableReinitialize={overwriteOnInitialValuesChange}
       validate={handleValidation}
       onSubmit={handleSubmit}
     >
@@ -208,7 +199,6 @@ function Form({
           {...formikProps}
           {...props}
           formObject={formObject}
-          formInitialValues={initialValues}
           error={error}
           registerFormField={registerFormField}
           unregisterFormField={unregisterFormField}
