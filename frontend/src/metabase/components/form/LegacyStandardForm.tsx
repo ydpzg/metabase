@@ -1,9 +1,9 @@
 import React from "react";
 import { t } from "ttag";
 
-import { BaseFormProps } from "./LegacyCustomForm/types";
-import { CustomFormFooterProps } from "./LegacyCustomForm/CustomFormFooter";
-import CustomForm from "./LegacyCustomForm";
+import { BaseFormProps } from "./CustomForm/types";
+import { CustomFormFooterProps } from "./CustomForm/CustomFormFooter";
+import CustomForm from "./CustomForm";
 
 interface Props extends BaseFormProps, CustomFormFooterProps {
   submitFullWidth?: boolean;

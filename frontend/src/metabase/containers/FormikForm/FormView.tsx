@@ -3,7 +3,7 @@ import _ from "underscore";
 
 import CustomForm, {
   CustomFormProps,
-} from "metabase/components/form/CustomForm";
+} from "metabase/components/form/FormikCustomForm";
 import StandardForm from "metabase/components/form/StandardForm";
 
 function FormView(

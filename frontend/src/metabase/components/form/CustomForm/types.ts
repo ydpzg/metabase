@@ -1,5 +1,6 @@
 import PropTypes from "prop-types";
 import {
+  BaseFieldDefinition,
   FieldName,
   DefaultFieldValue,
   FieldValues,
@@ -10,13 +11,12 @@ import {
 
 export interface BaseFormProps {
   formKey?: string;
+  formName?: string;
   formObject: FormObject;
 
   formFields: FormFieldDefinition[];
   formFieldsByName: Record<FieldName, FormFieldDefinition>;
   disablePristineSubmit?: boolean;
-  registerFormField: (fieldDef: FormFieldDefinition) => void;
-  unregisterFormField: (fieldDef: FormFieldDefinition) => void;
 
   fields: Record<string, FormField>;
   values: FieldValues;
@@ -25,7 +25,7 @@ export interface BaseFormProps {
   active?: boolean;
   asyncValidating?: boolean;
   dirty: boolean;
-  error?: string | null;
+  error?: string;
   invalid: boolean;
   overwriteOnInitialValuesChange?: boolean;
   pristine: boolean;
@@ -41,12 +41,6 @@ export interface BaseFormProps {
   onChangeField: (fieldName: FieldName, value: DefaultFieldValue) => void;
   onSubmitSuccess: () => void;
   resetForm: () => void;
-
-  submitPassback?: () => void;
-  touch?: () => void;
-  touchAll?: () => void;
-  untouch?: () => void;
-  untouchAll?: () => void;
 }
 
 type RenderSubmitProps = {
@@ -62,14 +56,12 @@ export interface OptionalFormViewProps {
   style?: React.CSSProperties;
 }
 
-export interface FormLegacyContext
+export interface CustomFormLegacyContext
   extends OptionalFormViewProps,
     Pick<
       BaseFormProps,
       | "formFields"
       | "formFieldsByName"
-      | "registerFormField"
-      | "unregisterFormField"
       | "disablePristineSubmit"
       | "handleSubmit"
       | "fields"
@@ -80,6 +72,11 @@ export interface FormLegacyContext
       | "error"
       | "onChangeField"
     > {}
+
+export interface FormContainerLegacyContext {
+  registerFormField: (fieldDef: BaseFieldDefinition) => void;
+  unregisterFormField: (fieldDef: BaseFieldDefinition) => void;
+}
 
 export const LegacyContextTypes = {
   handleSubmit: PropTypes.func,

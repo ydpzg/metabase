@@ -4,27 +4,27 @@ import _ from "underscore";
 
 import ActionButton from "metabase/components/ActionButton";
 
-import { useForm } from "./context";
+import { CustomFormLegacyContext, LegacyContextTypes } from "./types";
 
-export interface CustomFormSubmitProps {
+interface CustomFormSubmitProps {
   children: React.ReactNode;
 
   // ActionButton props
   fullWidth?: boolean;
 }
 
-function CustomFormSubmit(props: CustomFormSubmitProps) {
-  const {
-    submitting,
-    invalid,
-    pristine,
-    handleSubmit,
-    submitTitle,
-    renderSubmit,
-    disablePristineSubmit,
-  } = useForm();
-
-  const title = props.children || submitTitle || t`Submit`;
+function CustomFormSubmit({
+  submitting,
+  invalid,
+  pristine,
+  handleSubmit,
+  submitTitle,
+  renderSubmit,
+  disablePristineSubmit,
+  children,
+  ...props
+}: CustomFormSubmitProps & CustomFormLegacyContext) {
+  const title = children || submitTitle || t`Submit`;
   const canSubmit = !(
     submitting ||
     invalid ||
@@ -50,4 +50,21 @@ function CustomFormSubmit(props: CustomFormSubmitProps) {
   );
 }
 
-export default CustomFormSubmit;
+const CustomFormSubmitLegacyContext = (
+  props: CustomFormSubmitProps,
+  context: CustomFormLegacyContext,
+) => <CustomFormSubmit {...props} {...context} />;
+
+CustomFormSubmitLegacyContext.contextTypes = _.pick(
+  LegacyContextTypes,
+  "values",
+  "submitting",
+  "invalid",
+  "pristine",
+  "handleSubmit",
+  "submitTitle",
+  "renderSubmit",
+  "disablePristineSubmit",
+);
+
+export default CustomFormSubmitLegacyContext;

@@ -9,7 +9,7 @@ import { getIn, assocIn } from "icepick";
 import _ from "underscore";
 import { t } from "ttag";
 
-import CustomForm from "metabase/components/form/LegacyCustomForm";
+import CustomForm from "metabase/components/form/CustomForm";
 import StandardForm from "metabase/components/form/LegacyStandardForm";
 
 export {
@@ -18,7 +18,7 @@ export {
   CustomFormMessage as FormMessage,
   CustomFormFooter as FormFooter,
   CustomFormSection as FormSection,
-} from "metabase/components/form/LegacyCustomForm";
+} from "metabase/components/form/CustomForm";
 
 let FORM_ID = 0;
 // use makeMapStateToProps so each component gets it's own unique formId

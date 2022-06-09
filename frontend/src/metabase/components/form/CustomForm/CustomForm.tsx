@@ -1,17 +1,20 @@
 import React from "react";
 import _ from "underscore";
-import { Form } from "formik";
 
 import { FormFieldDefinition, FormObject } from "metabase-types/forms";
 
-import { BaseFormProps, OptionalFormViewProps } from "./types";
+import {
+  BaseFormProps,
+  OptionalFormViewProps,
+  CustomFormLegacyContext,
+  LegacyContextTypes,
+} from "./types";
 
 import CustomFormField, { CustomFormFieldProps } from "./CustomFormField";
 import CustomFormFooter, { CustomFormFooterProps } from "./CustomFormFooter";
 import CustomFormMessage, { CustomFormMessageProps } from "./CustomFormMessage";
 import CustomFormSubmit from "./CustomFormSubmit";
-
-import { FormContext } from "./context";
+import Form from "./Form";
 
 interface FormRenderProps extends BaseFormProps {
   form: FormObject;
@@ -23,34 +26,72 @@ interface FormRenderProps extends BaseFormProps {
   FormFooter: React.ComponentType<CustomFormFooterProps>;
 }
 
-export interface CustomFormProps extends BaseFormProps, OptionalFormViewProps {
-  children?: React.ReactNode | ((props: FormRenderProps) => JSX.Element);
+interface CustomFormProps extends BaseFormProps, OptionalFormViewProps {
+  children: React.ReactNode | ((props: FormRenderProps) => JSX.Element);
 }
 
 function CustomForm(props: CustomFormProps) {
   const { formObject: form, values, children } = props;
   if (typeof children === "function") {
-    return (
-      <FormContext.Provider value={props}>
-        {children({
-          ...props,
-          form,
-          formFields: form.fields(values),
-          Form,
-          FormField: CustomFormField,
-          FormSubmit: CustomFormSubmit,
-          FormMessage: CustomFormMessage,
-          FormFooter: CustomFormFooter,
-        })}
-      </FormContext.Provider>
-    );
+    return children({
+      ...props,
+      form,
+      formFields: form.fields(values),
+      Form: Form,
+      FormField: CustomFormField,
+      FormSubmit: CustomFormSubmit,
+      FormMessage: CustomFormMessage,
+      FormFooter: CustomFormFooter,
+    });
   }
-
-  return (
-    <FormContext.Provider value={props}>
-      <Form {...props} />
-    </FormContext.Provider>
-  );
+  return <Form {...props} />;
 }
 
-export default CustomForm;
+class CustomFormWithLegacyContext extends React.Component<CustomFormProps> {
+  static childContextTypes = LegacyContextTypes;
+
+  getChildContext(): CustomFormLegacyContext {
+    const {
+      fields,
+      values,
+      formObject: form,
+      submitting,
+      invalid,
+      pristine,
+      error,
+      handleSubmit,
+      submitTitle,
+      renderSubmit,
+      className,
+      style,
+      onChangeField,
+    } = this.props;
+    const { disablePristineSubmit } = form;
+    const formFields = form.fields(values);
+    const formFieldsByName = _.indexBy(formFields, "name");
+
+    return {
+      handleSubmit,
+      submitTitle,
+      renderSubmit,
+      className,
+      style,
+      fields,
+      formFields,
+      formFieldsByName,
+      values,
+      submitting,
+      invalid,
+      pristine,
+      error,
+      onChangeField,
+      disablePristineSubmit,
+    };
+  }
+
+  render() {
+    return <CustomForm {...this.props} />;
+  }
+}
+
+export default CustomFormWithLegacyContext;

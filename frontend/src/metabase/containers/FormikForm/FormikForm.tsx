@@ -222,6 +222,6 @@ export {
   CustomFormMessage as FormMessage,
   CustomFormFooter as FormFooter,
   CustomFormSection as FormSection,
-} from "metabase/components/form/CustomForm";
+} from "metabase/components/form/FormikCustomForm";
 
 export default Form;

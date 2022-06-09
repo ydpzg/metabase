@@ -1,5 +1,4 @@
 import React, { useCallback, useMemo } from "react";
-import PropTypes from "prop-types";
 import { getIn } from "icepick";
 import _ from "underscore";
 
@@ -16,11 +15,7 @@ import {
   FormFieldDefinition,
 } from "metabase-types/forms";
 
-import {
-  CustomFormLegacyContext,
-  FormContainerLegacyContext,
-  LegacyContextTypes,
-} from "./types";
+import { useForm } from "./context";
 
 function isCustomWidget(
   formField: FormFieldDefinition,
@@ -35,11 +30,9 @@ export interface CustomFormFieldProps extends BaseFieldDefinition {
   onChange?: (e: unknown) => void;
 }
 
-interface LegacyContextProps
-  extends CustomFormLegacyContext,
-    FormContainerLegacyContext {}
-
-function getFieldDefinition(props: CustomFormFieldProps): BaseFieldDefinition {
+function getFieldDefinition(
+  props: StandardFormFieldDefinition,
+): FormFieldDefinition {
   return _.pick(
     props,
     "name",
@@ -52,26 +45,32 @@ function getFieldDefinition(props: CustomFormFieldProps): BaseFieldDefinition {
   );
 }
 
-function RawCustomFormField({
-  fields,
-  formFieldsByName,
-  values,
-  onChangeField,
-  registerFormField,
-  unregisterFormField,
-  ...props
-}: CustomFormFieldProps & LegacyContextProps & { forwardedRef?: any }) {
+function RawCustomFormField(
+  props: CustomFormFieldProps & { forwardedRef?: any },
+) {
   const { name, onChange, forwardedRef } = props;
+  const {
+    fields,
+    formFieldsByName,
+    values,
+    onChangeField,
+    registerFormField,
+    unregisterFormField,
+  } = useForm();
 
-  const field = getIn(fields, name.split("."));
+  const field = fields[name];
   const formField = formFieldsByName[name];
 
   useOnMount(() => {
-    registerFormField?.(getFieldDefinition(props));
+    registerFormField?.(
+      getFieldDefinition(props as StandardFormFieldDefinition),
+    );
   });
 
   useOnUnmount(() => {
-    unregisterFormField?.(getFieldDefinition(props));
+    unregisterFormField?.(
+      getFieldDefinition(props as StandardFormFieldDefinition),
+    );
   });
 
   const handleChange = useCallback(
@@ -113,25 +112,8 @@ function RawCustomFormField({
   );
 }
 
-const CustomFormFieldLegacyContext = (
-  props: CustomFormFieldProps & { forwardedRef?: any },
-  context: LegacyContextProps,
-) => <RawCustomFormField {...props} {...context} />;
-
-CustomFormFieldLegacyContext.contextTypes = {
-  ..._.pick(
-    LegacyContextTypes,
-    "fields",
-    "formFieldsByName",
-    "values",
-    "onChangeField",
-  ),
-  registerFormField: PropTypes.func,
-  unregisterFormField: PropTypes.func,
-};
-
 export default React.forwardRef<HTMLInputElement, CustomFormFieldProps>(
   function CustomFormField(props, ref) {
-    return <CustomFormFieldLegacyContext {...props} forwardedRef={ref} />;
+    return <RawCustomFormField {...props} forwardedRef={ref} />;
   },
 );

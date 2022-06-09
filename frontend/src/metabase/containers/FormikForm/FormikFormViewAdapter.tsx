@@ -5,7 +5,7 @@ import { getIn } from "icepick";
 // eslint-disable-next-line import/named
 import { FormikProps } from "formik";
 
-import { CustomFormProps } from "metabase/components/form/CustomForm";
+import { CustomFormProps } from "metabase/components/form/FormikCustomForm";
 
 import { usePrevious } from "metabase/hooks/use-previous";
 

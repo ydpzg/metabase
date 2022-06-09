@@ -3,19 +3,31 @@ import _ from "underscore";
 
 import FormMessage from "metabase/components/form/FormMessage";
 
-import { useForm } from "./context";
+import { CustomFormLegacyContext, LegacyContextTypes } from "./types";
 
 export interface CustomFormMessageProps {
   className?: string;
   noPadding?: boolean;
 }
 
-function CustomFormMessage(props: CustomFormMessageProps) {
-  const { error } = useForm();
+function CustomFormMessage({
+  error,
+  ...props
+}: CustomFormMessageProps & CustomFormLegacyContext) {
   if (error) {
     return <FormMessage {...props} message={error} />;
   }
   return null;
 }
 
-export default CustomFormMessage;
+const CustomFormMessageLegacyContext = (
+  props: CustomFormMessageProps,
+  context: CustomFormLegacyContext,
+) => <CustomFormMessage {...props} {...context} />;
+
+CustomFormMessageLegacyContext.contextTypes = _.pick(
+  LegacyContextTypes,
+  "error",
+);
+
+export default CustomFormMessageLegacyContext;

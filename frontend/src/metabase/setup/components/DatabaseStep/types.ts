@@ -1,8 +1,8 @@
 import { ComponentType } from "react";
 
-import { CustomFormMessageProps } from "metabase/components/form/CustomForm/CustomFormMessage";
-import { CustomFormSubmitProps } from "metabase/components/form/CustomForm/CustomFormSubmit";
-import { OptionalFormViewProps } from "metabase/components/form/CustomForm/types";
+import { CustomFormMessageProps } from "metabase/components/form/FormikCustomForm/CustomFormMessage";
+import { CustomFormSubmitProps } from "metabase/components/form/FormikCustomForm/CustomFormSubmit";
+import { OptionalFormViewProps } from "metabase/components/form/FormikCustomForm/types";
 
 export interface FormField {
   name: string;
