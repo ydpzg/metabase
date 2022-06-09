@@ -2,6 +2,7 @@
 import React from "react";
 import { t } from "ttag";
 
+import LegacyForm from "metabase/containers/Form";
 import Form from "metabase/containers/FormikForm";
 import ModalContent from "metabase/components/ModalContent";
 
@@ -21,20 +22,34 @@ const EForm = ({
   create,
   onSubmit = object => (object.id ? update(object) : create(object)),
   onSaved,
+  useLegacyForm,
   ...props
-}) => (
-  <Form
-    {...props}
-    form={form}
-    initialValues={
-      typeof entityObject?.getPlainObject === "function"
-        ? entityObject.getPlainObject()
-        : entityObject
-    }
-    onSubmit={onSubmit}
-    onSubmitSuccess={action => onSaved && onSaved(action.payload.object)}
-  />
-);
+}) => {
+  if (useLegacyForm) {
+    return (
+      <LegacyForm
+        {...props}
+        form={form}
+        initialValues={entityObject}
+        onSubmit={onSubmit}
+        onSubmitSuccess={action => onSaved && onSaved(action.payload.object)}
+      />
+    );
+  }
+  return (
+    <Form
+      {...props}
+      form={form}
+      initialValues={
+        typeof entityObject?.getPlainObject === "function"
+          ? entityObject.getPlainObject()
+          : entityObject
+      }
+      onSubmit={onSubmit}
+      onSubmitSuccess={action => onSaved && onSaved(action.payload.object)}
+    />
+  );
+};
 
 const Modal = ({
   children,
