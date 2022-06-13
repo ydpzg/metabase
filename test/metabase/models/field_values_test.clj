@@ -96,11 +96,10 @@
             :has-more-values false}
            (#'field-values/distinct-values {}))))
 
-  ;; TODO MORE TESTS HERE
-  (testing "(#2332) check that if field values are long we skip over them"
+  (testing "(#2332) check that if field values are long we only store a subset of it"
     (with-redefs [metadata-queries/field-distinct-values (constantly ["AAAA" (str/join (repeat 50000 "A"))])]
-      (testing "still returns the values if we disable length check"
-        (is (= {:values ["AAAA"]
+      (testing "The total length of stored values must less than our max-length-limit"
+        (is (= {:values          ["AAAA"]
                 :has-more-values true}
               (#'field-values/distinct-values {})))))))
 

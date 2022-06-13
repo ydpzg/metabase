@@ -118,25 +118,6 @@
            (rf result input)
            (reduced result)))))))
 
-(defn- values-exceed-total-max-length?
-  "`true` if the combined length of all the values in [[distinct-values]] is below the threshold for what we'll allow in a
-  FieldValues entry. Does some logging as well."
-  [distinct-values]
-  ;; only consume enough values to determine whether the total length is > `total-max-length` -- if it is, we can stop
-  (let [total-length (reduce
-                      (fn [total-length v]
-                        (let [new-total (+ total-length (count (str v)))]
-                          (if (>= new-total total-max-length)
-                            (reduced new-total)
-                            new-total)))
-                      0
-                      distinct-values)]
-    (u/prog1 (> total-length total-max-length)
-      (log/debug (trs "Field values total length is > {0}." total-max-length)
-                 (if <>
-                   (trs "FieldValues are NOT allowed for this Field.")
-                   (trs "FieldValues are allowed for this Field."))))))
-
 (defn distinct-values
   "Fetch a sequence of distinct values for `field` that are below the [[total-max-length]] threshold. If the values are
   past the threshold, this returns `nil`.
@@ -151,6 +132,14 @@
     (let [distinct-values  ((resolve 'metabase.db.metadata-queries/field-distinct-values) field)
           limited-values   (into [] (take-by-length total-max-length) distinct-values)]
       {:values          limited-values
+       ;; exceeded_limit=true for a field with `has_field_values=:list` means that the list of values we cached in [[FieldValues]]
+       ;; for that field are is all possible values. This is used by UI to decide which field it needs to call the search API
+       ;; when user find values.
+       ;; exceeded_limit=true when:
+       ;; 1. the number of distinct values of this field exceeded [[metabase.db.metadata-queries/absolute-max-distinct-values-limit]]
+       ;;    -> thus the list we stored in [[FieldValues]] is just a subset of all possible values
+       ;; 2. the total legnth of all values exceeded [[total-max-length]]
+       ;;    -> in this case we don't store FieldValues at all
        :has-more-values (or (> (count distinct-values)
                                (count limited-values))
                             (= (count distinct-values)
@@ -198,7 +187,8 @@
         (db/update! 'Field (u/the-id field) :has_field_values nil)
         (db/delete! FieldValues :field_id (u/the-id field)))
 
-      (= (:values field-values) values)
+      (and (= (:values field-values) values)
+           (= (:has_more_values field-values) has-more-values))
       (log/debug (trs "FieldValues for Field {0} remain unchanged. Skipping..." field-name))
 
       ;; if the FieldValues object already exists then update values in it

@@ -66,11 +66,12 @@
 
     (testing "... and it should also have some FieldValues"
       (is (= {:values                (one-off-dbs/range-str 50)
-              :human_readable_values []}
-             (into {} (db/select-one [FieldValues :values :human_readable_values]
+              :human_readable_values []
+              :has_more_values       false}
+             (into {} (db/select-one [FieldValues :values :human_readable_values :has_more_values]
                                      :field_id (mt/id :blueberries_consumed :str))))))
 
-    (testing (str "if the number grows past the threshold & we sync again it should get unmarked as auto-list and set "
+    (testing (str "if the number grows past the cardinality threshold & we sync again it should get unmarked as auto-list and set "
                   "back to `nil` (#3215)\n")
       ;; now insert enough bloobs to put us over the limit and re-sync.
       (one-off-dbs/insert-rows-and-sync! (one-off-dbs/range-str 50 (+ 100 field-values/auto-list-cardinality-threshold)))
@@ -80,7 +81,7 @@
 
       (testing "its FieldValues should also get deleted."
         (is (= nil
-               (db/select-one [FieldValues :values :human_readable_values]
+               (db/select-one FieldValues
                               :field_id (mt/id :blueberries_consumed :str))))))))
 
 (deftest auto-list-with-max-length-threshold-test
@@ -97,7 +98,7 @@
              (into {} (db/select-one [FieldValues :values :human_readable_values]
                                      :field_id (mt/id :blueberries_consumed :str))))))
 
-    (testing (str "If the total length of all values exceeded the threahshold, it should get unmarked as auto list "
+    (testing (str "If the total length of all values exceeded the length threshold, it should get unmarked as auto list "
                   "and set back to `nil`")
       (one-off-dbs/insert-rows-and-sync! [(str/join (repeat (+ 100 field-values/total-max-length) "A"))])
       (testing "has_field_values should have been set to nil."
@@ -106,7 +107,7 @@
 
       (testing "its FieldValues should also get deleted."
         (is (= nil
-               (db/select-one [FieldValues :values :human_readable_values]
+               (db/select-one FieldValues
                               :field_id (mt/id :blueberries_consumed :str))))))))
 
 (deftest list-with-cardinality-threshold-test
@@ -126,8 +127,7 @@
           (is (= :list
                  (db/select-one-field :has_field_values Field
                                       :id (mt/id :blueberries_consumed :str)))))
-        (testing (str "it should still have FieldValues but only has at most 10000 characters,"
-                      "becauase it's the maximum number of values we query from DB.")
+        (testing "it should still have FieldValues, but the stored list is just a sub-list of all distinct values and `has_more_values` = true"
           (is (= {:values                (into []
                                                (field-values/take-by-length field-values/total-max-length)
                                                (one-off-dbs/range-str (+ 100 metadata-queries/absolute-max-distinct-values-limit)))
@@ -153,8 +153,9 @@
           (is (= :list
                  (db/select-one-field :has_field_values Field
                                       :id (mt/id :blueberries_consumed :str)))))
-        (testing "It shouldn't have Field values"
+        (testing "it should still have FieldValues, but the stored list is just a sub-list of all distinct values and `has_more_values` = true"
           (is (= {:values                [(str/join (repeat 50 "A"))]
-                  :human_readable_values []}
-                 (into {} (db/select-one [FieldValues :values :human_readable_values]
+                  :human_readable_values []
+                  :has_more_values       true}
+                 (into {} (db/select-one [FieldValues :values :human_readable_values :has_more_values]
                                         :field_id (mt/id :blueberries_consumed :str))))))))))
