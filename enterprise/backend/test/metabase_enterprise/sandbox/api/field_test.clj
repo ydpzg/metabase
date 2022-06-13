@@ -133,7 +133,7 @@
               (is (not= (db/select-one-field :updated_at FieldValues :field_id (mt/id :venues :name))
                         old-updated-at)))
             (with-redefs [field-values/distinct-values (constantly {:values          new-values
-                                                                    :has-more-values false})]
+                                                                    :has_more_values false})]
               (is (= (map vector new-values)
                      (:values (mt/user-http-request :rasta :get 200 (str "field/" (mt/id :venues :name) "/values")))))))
           (finally

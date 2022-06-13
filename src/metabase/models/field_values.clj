@@ -120,8 +120,13 @@
 
 (defn distinct-values
   "Fetch a sequence of distinct values for `field` that are below the [[total-max-length]] threshold. If the values are
-  past the threshold, this returns `nil`.
-  Set check-length? = true to skip the check.
+  past the threshold, this returns a subset of possible values values where the total length of all items is less than [[total-max-length]].
+
+  It also returns a `has_more_values` flag, this flag = `true` when the returned values list is a subset of all possible values.
+
+  ;; (distinct-values (Field 1))
+  ;; ->  {:values          [1, 2, 3]
+          :has_more_values false}
 
   (This function provides the values that normally get saved as a Field's
   FieldValues. You most likely should not be using this directly in code outside of this namespace, unless it's for a
@@ -129,19 +134,17 @@
   [field]
   (classloader/require 'metabase.db.metadata-queries)
   (try
-    (let [distinct-values  ((resolve 'metabase.db.metadata-queries/field-distinct-values) field)
-          limited-values   (into [] (take-by-length total-max-length) distinct-values)]
-      {:values          limited-values
-       ;; exceeded_limit=true for a field with `has_field_values=:list` means that the list of values we cached in [[FieldValues]]
-       ;; for that field are is all possible values. This is used by UI to decide which field it needs to call the search API
-       ;; when user find values.
-       ;; exceeded_limit=true when:
+    (let [distinct-values ((resolve 'metabase.db.metadata-queries/field-distinct-values) field)
+          values          (into [] (take-by-length total-max-length) distinct-values)]
+      {:values          values
+       ;; has_more_values=true means the list of values we return is a subset of all possible values.
+       ;; has_more_values=true when:
        ;; 1. the number of distinct values of this field exceeded [[metabase.db.metadata-queries/absolute-max-distinct-values-limit]]
        ;;    -> thus the list we stored in [[FieldValues]] is just a subset of all possible values
        ;; 2. the total legnth of all values exceeded [[total-max-length]]
-       ;;    -> in this case we don't store FieldValues at all
-       :has-more-values (or (> (count distinct-values)
-                               (count limited-values))
+       ;;    -> in this case we only returns a sublist
+       :has_more_values (or (> (count distinct-values)
+                               (count values))
                             (= (count distinct-values)
                                @(resolve 'metabase.db.metadata-queries/absolute-max-distinct-values-limit)))})
     (catch Throwable e
@@ -164,7 +167,7 @@
   [field & [human-readable-values]]
   (classloader/require 'metabase.db.metadata-queries)
   (let [field-values                     (FieldValues :field_id (u/the-id field))
-        {:keys [values has-more-values]} (distinct-values field)
+        {:keys [values has_more_values]} (distinct-values field)
         field-name                       (or (:name field) (:id field))]
     (cond
       ;; If this Field is marked `auto-list`, and the number of values in now over the [[auto-list-cardinality-threshold]] or
@@ -178,7 +181,7 @@
       ;; Fingerprints don't get updated regularly enough that we could detect the sudden increase in cardinality in a
       ;; way that could make this work. Thus, we are stuck doing it here :(
       (and (= :auto-list (keyword (:has_field_values field)))
-           (or has-more-values
+           (or has_more_values
                (> (count values) auto-list-cardinality-threshold)))
       (do
         (log/info (trs "Field {0} was previously automatically set to show a list widget, but now has {1} values."
@@ -188,7 +191,7 @@
         (db/delete! FieldValues :field_id (u/the-id field)))
 
       (and (= (:values field-values) values)
-           (= (:has_more_values field-values) has-more-values))
+           (= (:has_more_values field-values) has_more_values))
       (log/debug (trs "FieldValues for Field {0} remain unchanged. Skipping..." field-name))
 
       ;; if the FieldValues object already exists then update values in it
@@ -196,7 +199,7 @@
       (do
         (log/debug (trs "Storing updated FieldValues for Field {0}..." field-name))
         (db/update-non-nil-keys! FieldValues (u/the-id field-values)
-          :has_more_values       has-more-values
+          :has_more_values       has_more_values
           :values                values
           :human_readable_values (fixup-human-readable-values field-values values))
         ::fv-updated)
@@ -207,7 +210,7 @@
         (log/debug (trs "Storing FieldValues for Field {0}..." field-name))
         (db/insert! FieldValues
           :field_id              (u/the-id field)
-          :has_more_values       has-more-values
+          :has_more_values       has_more_values
           :values                values
           :human_readable_values human-readable-values)
         ::fv-created)

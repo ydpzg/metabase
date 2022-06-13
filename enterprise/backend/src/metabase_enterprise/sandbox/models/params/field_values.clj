@@ -26,10 +26,10 @@
                           updated-at
                           (u/the-id field)])}
    (fn [_ field]
-     (let [{:keys [values has-more-values]} (field-values/distinct-values field)]
+     (let [{:keys [values has_more_values]} (field-values/distinct-values field)]
        {:values          values
         :field_id        (u/the-id field)
-        :has_more_values (boolean has-more-values)}))
+        :has_more_values (boolean has_more_values)}))
    ;; TODO -- shouldn't we return sandboxed human-readable values as well??
    ;;
    ;; Expire entries older than 30 days so we don't have entries for users and/or fields that

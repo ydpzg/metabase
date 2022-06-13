@@ -200,7 +200,7 @@
 (defn field->values
   "Fetch FieldValues, if they exist, for a `field` and return them in an appropriate format for public/embedded
   use-cases."
-  [{has-field-values-type :has_field_values, field-id :id, has-more-values :has_more_values, :as field}]
+  [{has-field-values-type :has_field_values, field-id :id, has_more_values :has_more_values, :as field}]
   ;; if there's a human-readable remapping, we need to do all sorts of nonsense to make this work and return pairs of
   ;; `[original remapped]`. The code for this exists in the [[search-values]] function below. So let's just use
   ;; [[search-values]] without a search term to fetch all values.
@@ -209,7 +209,7 @@
     {:values          (search-values (api/check-404 field)
                                      (api/check-404 (Field human-readable-field-id)))
      :field_id        field-id
-     :has_more_values has-more-values}
+     :has_more_values has_more_values}
     (params.field-values/get-or-create-field-values-for-current-user! (api/check-404 field))))
 
 (defn- check-perms-and-return-field-values

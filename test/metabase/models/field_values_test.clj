@@ -93,14 +93,14 @@
 (deftest distinct-values-test
   (with-redefs [metadata-queries/field-distinct-values (constantly [1 2 3 4])]
     (is (= {:values          [1 2 3 4]
-            :has-more-values false}
+            :has_more_values false}
            (#'field-values/distinct-values {}))))
 
   (testing "(#2332) check that if field values are long we only store a subset of it"
     (with-redefs [metadata-queries/field-distinct-values (constantly ["AAAA" (str/join (repeat 50000 "A"))])]
       (testing "The total length of stored values must less than our max-length-limit"
         (is (= {:values          ["AAAA"]
-                :has-more-values true}
+                :has_more_values true}
               (#'field-values/distinct-values {})))))))
 
 (deftest clear-field-values!-test
