@@ -92,16 +92,17 @@
 
 (deftest distinct-values-test
   (with-redefs [metadata-queries/field-distinct-values (constantly [1 2 3 4])]
-    (is (= [1 2 3 4]
+    (is (= {:values          [1 2 3 4]
+            :has-more-values false}
            (#'field-values/distinct-values {}))))
 
+  ;; TODO MORE TESTS HERE
   (testing "(#2332) check that if field values are long we skip over them"
-    (with-redefs [metadata-queries/field-distinct-values (constantly [(str/join (repeat 50000 "A"))])]
-      (is (= nil
-             (#'field-values/distinct-values {})))
+    (with-redefs [metadata-queries/field-distinct-values (constantly ["AAAA" (str/join (repeat 50000 "A"))])]
       (testing "still returns the values if we disable length check"
-        (is (= [(str/join (repeat 50000 "A"))]
-              (#'field-values/distinct-values {} false)))))))
+        (is (= {:values ["AAAA"]
+                :has-more-values true}
+              (#'field-values/distinct-values {})))))))
 
 (deftest clear-field-values!-test
   (mt/with-temp* [Database    [{database-id :id}]
