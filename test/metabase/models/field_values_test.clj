@@ -122,21 +122,6 @@
   (sync/sync-database! db)
   (find-values field-values-id))
 
-(deftest values-exceed-total-max-length?-test
-  (with-redefs [field-values/total-max-length 10]
-    (is (= false
-           (#'field-values/values-exceed-total-max-length? ["a" "b" "c"])))
-    (is (= true
-           (#'field-values/values-exceed-total-max-length? ["123" "4567" "8901"])))
-    (testing "Should only consume enough values to determine whether length is over limit"
-      (let [realized? (atom false)
-            vs        (lazy-cat ["123" "4567" "8901" "2345"] (do (reset! realized? true) ["Shouldn't get here"]))]
-        (is (= true
-               (#'field-values/values-exceed-total-max-length? vs)))
-        (testing "Entire lazy seq shouldn't be realized"
-          (is (= false
-                 @realized?)))))))
-
 (deftest normalize-human-readable-values-test
   (testing "If FieldValues were saved as a map, normalize them to a sequence on the way out"
     (mt/with-temp FieldValues [fv {:field_id (mt/id :venues :id)
