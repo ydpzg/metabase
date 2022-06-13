@@ -195,7 +195,7 @@
         (log/info (trs "Field {0} was previously automatically set to show a list widget, but now has {1} values."
                        field-name (count values))
                   (trs "Switching Field to use a search widget instead."))
-        (db/update! 'Field (u/the-id field))
+        (db/update! 'Field (u/the-id field) :has_field_values nil)
         (db/delete! FieldValues :field_id (u/the-id field)))
 
       (= (:values field-values) values)
