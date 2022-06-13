@@ -84,8 +84,6 @@
                                           (format "field/%d/values" (mt/id :venues :name)))
                                (update :values (partial take 3)))))))))))))))
 
-;k TODO add a test  to check has_more_values = true
-
 (deftest search-test
   (testing "GET /api/field/:id/search/:search-id"
     (mt/with-gtaps {:gtaps      {:venues
