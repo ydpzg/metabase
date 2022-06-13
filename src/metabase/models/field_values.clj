@@ -102,8 +102,37 @@
             (not (isa? (keyword base-type) :type/Temporal))
             (#{:list :auto-list} (keyword has-field-values)))))))
 
+
+(defn take-up-to
+  "Returns a transducer that will walk through a collection, return a list where the total length of all items in list is less than `max-length`."
+  [max-length]
+  (fn [rf]
+    (let [current-length (volatile! 0)]
+      (fn
+        ([] (rf))
+        ([result]
+         (rf result))
+        ([result input]
+         (vswap! current-length + (count (str input)))
+         (if (< @current-length max-length)
+           (rf result input)
+           (reduced result)))))))
+
+(defn take-by-length
+  "Take a column by length"
+  [max-length coll]
+  (reduce (fn [{:keys [length result] :as acc} input]
+            (let [new-length (+ length (count (str input)))]
+             (if (> new-length max-length)
+               (reduced acc)
+               {:total-length new-length
+                :result       (conj result input)})))
+          {:total-length 0
+           :result       []}
+          coll))
+
 (defn- values-exceed-total-max-length?
-  "`true` if the combined length of all the values in [[distinct-values]] is greater than the threshold for what we'll allow in a
+  "`true` if the combined length of all the values in [[distinct-values]] is below the threshold for what we'll allow in a
   FieldValues entry. Does some logging as well."
   [distinct-values]
   ;; only consume enough values to determine whether the total length is > `total-max-length` -- if it is, we can stop
@@ -135,12 +164,13 @@
    (classloader/require 'metabase.db.metadata-queries)
    (try
      (let [values ((resolve 'metabase.db.metadata-queries/field-distinct-values) field)]
-       (if (and check-length? (values-exceed-total-max-length? values))
+       (if (and check-length?
+                (values-exceed-total-max-length? values))
          nil
          values))
-    (catch Throwable e
-      (log/error e (trs "Error fetching field values"))
-      nil))))
+     (catch Throwable e
+       (log/error e (trs "Error fetching field values"))
+       nil))))
 
 (defn- fixup-human-readable-values
   "Field values and human readable values are lists that are zipped together. If the field values have changes, the
@@ -157,25 +187,14 @@
    created/updated/deleted as a result of this call."
   [field & [human-readable-values]]
   (classloader/require 'metabase.db.metadata-queries)
-  (let [field-values          (FieldValues :field_id (u/the-id field))
-        field-name            (or (:name field) (:id field))
-        full-values           (distinct-values field false)
-        values-exceed-length? (values-exceed-total-max-length? full-values)
-        values                (when-not values-exceed-length?
-                                full-values)]
-    ;; exceeded_limit=true for a field with `has_field_values=:list` means that the list of values we cached in [[FieldValues]]
-    ;; for that field are is all possible values. This is used by UI to decide which field it needs to call the search API
-    ;; when user find values.
-    ;; exceeded_limit=true when:
-    ;; 1. the number of distinct values of this field exceeded [[metabase.db.metadata-queries/absolute-max-distinct-values-limit]]
-    ;;    -> thus the list we stored in [[FieldValues]] is just a subset of all possible values
-    ;; 2. the total legnth of all values exceeded [[total-max-length]]
-    ;;    -> in this case we don't store FieldValues at all
-    (when (and (= (:has_field_values field) :list)
-               (or values-exceed-length?
-                   (>= (count values)
-                      @(resolve 'metabase.db.metadata-queries/absolute-max-distinct-values-limit))))
-      (db/update! 'Field (u/the-id field) :exceeded_limit true))
+  (let [field-values    (FieldValues :field_id (u/the-id field))
+        full-values     (distinct-values field false)
+        values          (into [] (take-up-to total-max-length) full-values)
+        has_more_values (or (> (count full-values)
+                               (count values))
+                            (= (count values)
+                               @(resolve 'metabase.db.metadata-queries/absolute-max-distinct-values-limit)))
+        field-name     (or (:name field) (:id field))]
     (cond
       ;; If this Field is marked `auto-list`, and the number of values in now over the [[auto-list-cardinality-threshold]] or
       ;; the accumulated length of all values exceeded the [[total-max-length]] threshold
@@ -187,7 +206,7 @@
       ;; It would be nicer if we could do this in analysis where it gets marked `:auto-list` in the first place, but
       ;; Fingerprints don't get updated regularly enough that we could detect the sudden increase in cardinality in a
       ;; way that could make this work. Thus, we are stuck doing it here :(
-      (and (or values-exceed-length?
+      (and (or (not= (count values) (count full-values))
                (> (count values) auto-list-cardinality-threshold))
            (= :auto-list (keyword (:has_field_values field))))
       (do
@@ -205,6 +224,7 @@
       (do
         (log/debug (trs "Storing updated FieldValues for Field {0}..." field-name))
         (db/update-non-nil-keys! FieldValues (u/the-id field-values)
+          :has_more_values       has_more_values
           :values                values
           :human_readable_values (fixup-human-readable-values field-values values))
         ::fv-updated)
@@ -215,6 +235,7 @@
         (log/debug (trs "Storing FieldValues for Field {0}..." field-name))
         (db/insert! FieldValues
           :field_id              (u/the-id field)
+          :has_more_values       has_more_values
           :values                values
           :human_readable_values human-readable-values)
         ::fv-created)

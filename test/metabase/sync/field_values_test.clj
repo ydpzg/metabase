@@ -116,16 +116,16 @@
       (one-off-dbs/insert-rows-and-sync! (one-off-dbs/range-str 50))
       ;; change has_field_values to list
       (db/update! Field (mt/id :blueberries_consumed :str) :has_field_values "list")
-      (testing "exceeded_limit should initially be false"
+      (testing "has_more_values should initially be false"
         (is (= false
-               (db/select-one-field :exceeded_limit Field :id (mt/id :blueberries_consumed :str)))))
+               (db/select-one-field :has_more_values Field :id (mt/id :blueberries_consumed :str)))))
 
       (testing "adding more values even if it's exceed our cardinality limit, "
         (one-off-dbs/insert-rows-and-sync! (one-off-dbs/range-str 50 (+ 100 metadata-queries/absolute-max-distinct-values-limit)))
-        (testing "has_field_values shouldn't change and exceeded_limit should be true"
+        (testing "has_field_values shouldn't change and has_more_values should be true"
           (is (= {:has_field_values :list
-                  :exceeded_limit   true}
-                 (into {} (db/select-one [Field :has_field_values :exceeded_limit]
+                  :has_more_values   true}
+                 (into {} (db/select-one [Field :has_field_values :has_more_values]
                                          :id (mt/id :blueberries_consumed :str))))))
         (testing (str "it should still have FieldValues but only has at most 5000 values,"
                       "becauase it's the maximum number of values we query from DB.")
@@ -142,16 +142,16 @@
       (one-off-dbs/insert-rows-and-sync! [(str/join (repeat 50 "A"))])
       ;; change has_field_values to list
       (db/update! Field (mt/id :blueberries_consumed :str) :has_field_values "list")
-      (testing "exceeded_limit should initially be false"
+      (testing "has_more_values should initially be false"
         (is (= false
-               (db/select-one-field :exceeded_limit Field :id (mt/id :blueberries_consumed :str)))))
+               (db/select-one-field :has_more_values Field :id (mt/id :blueberries_consumed :str)))))
 
       (testing "insert a row with the value length exceeds our length limit\n"
         (one-off-dbs/insert-rows-and-sync! [(str/join (repeat (+ 100 field-values/total-max-length) "A"))])
-        (testing "has_field_values shouldn't change and exceeded_limit should be true"
+        (testing "has_field_values shouldn't change and has_more_values should be true"
           (is (= {:has_field_values :list
-                  :exceeded_limit   true}
-                 (into {} (db/select-one [Field :has_field_values :exceeded_limit]
+                  :has_more_values   true}
+                 (into {} (db/select-one [Field :has_field_values :has_more_values]
                                          :id (mt/id :blueberries_consumed :str))))))
         (testing "It shouldn't have Field values"
           (is (= nil
